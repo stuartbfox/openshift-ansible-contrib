@@ -58,7 +58,6 @@ export AWS_SECRET_ACCESS_KEY=bar
 ### Region
 The default region is us-east-1 but can be changed when running the ose-on-aws script by specifying --region=us-west-2 for example. The region must contain at least 3 Availability Zones. 
 
-=======
 ### Environment
 The default environment descriptor file is`playbooks/vars/main.yaml`. To use a different environment file, add `--vars-file=/PATH/TO/VARS/FILE.yaml`. Either a fully qualified path or relative to playbooks/
 You must set a new stack name if you define a custom environment, use `--stack-name=STACK_NAME`
@@ -83,7 +82,7 @@ Once deployed, you can alter the instance counts up and down. CloudFormation wil
 
 ### Extendable CloudFormation Templates
 You can extend the AWS resources deployed at stack creation time by supplying a path to a json fragment. It **MUST** contain valid CloudFormation json. The contents of the file run thru the jinja templating engine before being merged, at the root level, into the default CloudFormation template. Use `--custom-template=/PATH/TO/TEMPLATE/FILE.json
-See the README and examples in extensions/examples/
+See the README in extensions/examples/
 
 ### AMI ID
 The AMI ID may need to change if the AWS IAM account does not have access to the Red Hat Cloud Access gold image or if deploying outside of the us-east-1 region.
