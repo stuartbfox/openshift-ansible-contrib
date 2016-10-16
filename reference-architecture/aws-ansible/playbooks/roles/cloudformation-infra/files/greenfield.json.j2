@@ -1048,7 +1048,12 @@
         "AllocationId" : { "Fn::GetAtt" : ["BastionEip", "AllocationId"]}
       }
     },
+
+{% set rotator = 1 %}
 {% for idx in range(1, master_count) %}
+{% if rotator == 4 %}
+  {% set rotator = 1 %}
+{% endif %}
     "Master{{ '%02d' % idx }}" : {
       "Type" : "AWS::EC2::Instance",
       "DependsOn": ["MasterInstanceProfile"],
@@ -1058,7 +1063,7 @@
         "KeyName" : {"Ref": "KeyName"},
         "InstanceType": {"Ref": "MasterInstanceType"},
         "SecurityGroupIds": [{ "Fn::GetAtt" : ["NodeSG", "GroupId"] }, { "Fn::GetAtt" : ["MasterSG", "GroupId"] }, { "Fn::GetAtt" : ["EtcdSG", "GroupId"] }],
-        "SubnetId" : {"Ref": "PrivateSubnet1"},
+        "SubnetId" : {"Ref": "PrivateSubnet{{ rotator }}"},
         "IamInstanceProfile": { "Ref": "MasterInstanceProfile" },
         "Tags": [
           { "Key": "Name",
@@ -1099,8 +1104,14 @@
         ]
       }
     },
+{% set rotator = rotator + 1 %}
 {% endfor %}
+
+{% set rotator = 1 %}
 {% for idx in range(1, infra_count) %}
+{% if rotator == 4 %}
+  {% set rotator = 1 %}
+{% endif %}
     "InfraNode{{ '%02d' % idx }}" : {
       "Type" : "AWS::EC2::Instance",
       "DependsOn": ["NodeInstanceProfile"],
@@ -1110,7 +1121,7 @@
         "KeyName" : {"Ref": "KeyName"},
         "InstanceType": {"Ref": "InfraInstanceType"},
         "SecurityGroupIds": [{ "Fn::GetAtt" : ["NodeSG", "GroupId"] }, { "Fn::GetAtt" : ["InfraSG", "GroupId"] }],
-        "SubnetId" : {"Ref": "PrivateSubnet1"},
+        "SubnetId" : {"Ref": "PrivateSubnet{{ rotator }}"},
         "IamInstanceProfile": { "Ref": "NodeInstanceProfile" },
         "Tags": [
           { "Key": "Name",
@@ -1148,8 +1159,14 @@
         ]
       }
     },
+{% set rotator = rotator + 1 %}
 {% endfor %}
+
+{% set rotator = 1 %}
 {% for idx in range(1, node_count) %}
+{% if rotator == 4 %}
+  {% set rotator = 1 %}
+{% endif %}
     "AppNode{{ '%03d' % idx }}" : {
       "Type" : "AWS::EC2::Instance",
       "DependsOn": ["NodeInstanceProfile"],
@@ -1159,7 +1176,7 @@
         "KeyName" : {"Ref": "KeyName"},
         "InstanceType": {"Ref": "AppNodeInstanceType"},
         "SecurityGroupIds": [{ "Fn::GetAtt" : ["NodeSG", "GroupId"] }],
-        "SubnetId" : {"Ref": "PrivateSubnet1"},
+        "SubnetId" : {"Ref": "PrivateSubnet{{ rotator }}"},
         "IamInstanceProfile": { "Ref": "NodeInstanceProfile" },
         "Tags": [
           { "Key": "Name",
@@ -1197,6 +1214,7 @@
         ]
       }
     },
+{% set rotator = rotator + 1 %}
 {% endfor %}
     "Bastion" : {
       "Type" : "AWS::EC2::Instance",
