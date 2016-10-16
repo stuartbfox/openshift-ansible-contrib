@@ -1,0 +1,10 @@
+---
+stack_name: "{{ stack_name  }}"
+vnetName: "{{ stack_name }}-vnet"
+vnetRange: "{{ vnet_range }}"
+publiRange:  "{{ public_range }}"
+publicName: "{{ stack_name }}-public"
+privateRange: "{{ private_range }}"
+privateName: "{{ stack_name }}-private"
+miscRange: "{{ misc_range }}"
+miscName: "{{ stack_name }}-misc"
