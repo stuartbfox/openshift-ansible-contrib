@@ -6,9 +6,9 @@
     openshift_node_labels:
       role: bastion
   when:
-    - hostvars[item]['ec2_tag_aws_cloudformation_stack-name'] == "{{ stack_name }}"
+    - hostvars[item]['ec2_tag_aws_cloudformation_stack_name'] == "{{ stack_name }}"
     - byo_bastion == "no"
-  with_items: "{{ groups['tag_openshift-role_bastion'] }}"
+  with_items: "{{ groups['tag_openshift_role_bastion'] }}"
 
 - name: Add masters to requisite groups
   add_host:
@@ -16,9 +16,9 @@
     groups: masters, etcd, nodes, cluster_hosts
     openshift_node_labels:
       role: master
-  with_items: "{{ groups['tag_openshift-role_master'] }}"
+  with_items: "{{ groups['tag_openshift_role_master'] }}"
   when:
-    - hostvars[item]['ec2_tag_aws_cloudformation_stack-name'] == "{{ stack_name }}"
+    - hostvars[item]['ec2_tag_aws_cloudformation_stack_name'] == "{{ stack_name }}"
 
 - name: Add a master to the primary masters group
   add_host:
@@ -26,9 +26,9 @@
     groups: primary_master
     openshift_node_labels:
       role: master
-  with_items: "{{ groups['tag_openshift-role_master'].0 }}"
+  with_items: "{{ groups['tag_openshift_role_master'].0 }}"
   when:
-    - hostvars[item]['ec2_tag_aws_cloudformation_stack-name'] == "{{ stack_name }}"
+    - hostvars[item]['ec2_tag_aws_cloudformation_stack_name'] == "{{ stack_name }}"
 
 - name: Add infra instances to host group
   add_host:
@@ -36,9 +36,9 @@
     groups: nodes, cluster_hosts, schedulable_nodes
     openshift_node_labels:
       role: infra
-  with_items: "{{ groups['tag_openshift-role_infra'] }}"
+  with_items: "{{ groups['tag_openshift_role_infra'] }}"
   when:
-    - hostvars[item]['ec2_tag_aws_cloudformation_stack-name'] == "{{ stack_name }}"
+    - hostvars[item]['ec2_tag_aws_cloudformation_stack_name'] == "{{ stack_name }}"
 
 - name: Add app instances to host group
   add_host:
@@ -46,6 +46,6 @@
     groups: nodes, cluster_hosts, schedulable_nodes
     openshift_node_labels:
       role: app
-  with_items: "{{ groups['tag_openshift-role_app'] }}"
+  with_items: "{{ groups['tag_openshift_role_app'] }}"
   when:
-    - hostvars[item]['ec2_tag_aws_cloudformation_stack-name'] == "{{ stack_name }}"
+    - hostvars[item]['ec2_tag_aws_cloudformation_stack_name'] == "{{ stack_name }}"
