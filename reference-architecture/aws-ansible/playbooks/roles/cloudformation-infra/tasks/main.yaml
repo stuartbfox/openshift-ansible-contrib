@@ -44,6 +44,7 @@
       NodeRootVolType: gp2
       NodeDockerVolSize: "{{ docker_storage }}"
       NodeDockerVolType: gp2
+      S3User: "{{ s3_username }}"
   when: create_vpc == "yes"
 
 - name: Create Brownfield Infrastructure

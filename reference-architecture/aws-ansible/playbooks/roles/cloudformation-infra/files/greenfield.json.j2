@@ -140,6 +140,10 @@
     "NodeRootVolType": {
       "Type": "String",
       "Default": "gp2"
+    },
+    "S3User": {
+      "Type": "String",
+      "Default": "openshift_s3_user"
     }
   },
   "Conditions": {
@@ -1244,6 +1248,40 @@
           }
         ]
       }
+    },
+    "S3UserName" : {
+      "Type" : "AWS::IAM::User",
+      "Properties" : {
+        "Path" : "/",
+        "UserName": { "Ref": "S3User" },
+        "Policies" : [ {
+          "PolicyName" : "accessalls3",
+          "PolicyDocument" : {
+            "Version": "2012-10-17",
+            "Statement" : [ {
+              "Effect" : "Allow",
+              "Action" : [ "s3:*" ],
+              "Resource": "*"
+            } ]
+          }
+        } ]
+      }
+    },
+    "CFNKeys" : {
+      "Type" : "AWS::IAM::AccessKey",
+      "Properties" : {
+        "UserName" : { "Ref": "S3UserName" }
+      }
+    }
+  },
+  "Outputs" : {
+    "S3UserAccessId" : {
+      "Value" : { "Ref" : "CFNKeys" },
+      "Description" : "AWSAccessKeyId of new user"
+    },
+    "S3UserSecretKey" : {
+      "Value" : { "Fn::GetAtt" : ["CFNKeys", "SecretAccessKey"]},
+      "Description" : "AWSSecretKey of new S3"
     }
   }
 }

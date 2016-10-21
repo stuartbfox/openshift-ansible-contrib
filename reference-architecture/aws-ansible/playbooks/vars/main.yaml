@@ -20,4 +20,4 @@ openshift_master_cluster_public_hostname: "openshift-master.{{ public_hosted_zon
 osm_default_subdomain: "{{ wildcard_zone }}"
 
 # Registry variables
-s3_username: "openshift-registry-{{ stack_name }}"
+s3_username: "ocp_s3_{{ stack_name }}"
