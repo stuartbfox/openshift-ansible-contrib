@@ -1,0 +1,10 @@
+---
+- name: Get cfn stack outputs
+  cloudformation_facts:
+    stack_name: "{{ stack_name }}"
+  register: stack
+
+- name: Set s3_userid fact
+  set_fact:
+    s3user_id: "{{ stack['ansible_facts']['cloudformation'][stack_name]['stack_outputs']['S3UserAccessId'] }}"
+    s3user_secret: "{{ stack['ansible_facts']['cloudformation'][stack_name]['stack_outputs']['S3UserSecretKey'] }}"

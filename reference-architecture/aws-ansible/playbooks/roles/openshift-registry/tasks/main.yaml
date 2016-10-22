@@ -1,4 +1,10 @@
 ---
+- name: Set S3 Facts
+  set_fact:
+    s3user_id: "{{ hostvars['localhost']['s3user_id'] }}"
+    s3user_secret: "{{ hostvars['localhost']['s3user_secret'] }}"
+    s3_bucket: "{{ hostvars['localhost']['s3_bucket'] }}"
+
 - name: Switch to default project
   command: "{{ openshift.common.client_binary }} project default"
 
@@ -46,6 +52,10 @@
 - name: Determine if new secrets are needed
   command: "{{ openshift.common.client_binary }} get secrets"
   register: secrets
+
+- name: debug s3
+  debug:
+    var: s3user_id
 
 - name: Create registry secrets
   command: "{{ openshift.common.client_binary }} secrets new dockerregistry /root/config.yml"
