@@ -1,0 +1,365 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "region": {
+      "type": "string"
+    },
+    "stack": {
+      "type": "string"
+    },
+    "storageAccountType": {
+      "type": "string",
+      "defaultValue": "Standard_LRS",
+      "allowedValues": [
+        "Standard_LRS",
+        "Premium_LRS"
+      ]
+    },
+    "storageAccountName": {
+      "type": "string"
+    },
+    "vnetName": {
+      "type": "string"
+    },
+    "vnetCIDR": {
+      "type": "string"
+    },
+    "privateName": {
+      "type": "string"
+    },
+    "privateCIDR": {
+      "type": "string"
+    },
+    "publicName": {
+      "type": "string"
+    },
+    "publicCIDR": {
+      "type": "string"
+    },
+    "bastionSize": {
+      "type": "string",
+      "defaultValue": "Basic_A0"
+    },
+    "sshKeyData": {
+      "type": "string",
+    }
+  },
+  "variables": {
+    "apiVersion": "2015-06-15"
+  },
+  "resources": [
+    {
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[parameters('storageAccountName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "accountType": "[parameters('storageAccountType')]"
+      }
+    },
+    {
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/virtualNetworks",
+      "name": "[parameters('vnetName')]",
+      "location": "[parameters('region')]",
+      "properties": {
+        "addressSpace": {
+          "addressPrefixes": [
+            "[parameters('vnetCIDR')]"
+          ]
+        },
+        "subnets": [
+          {
+            "name": "[parameters('privateName')]",
+            "properties": {
+              "addressPrefix": "[parameters('privateCIDR')]"
+            }
+          },
+          {
+            "name": "[parameters('publicName')]",
+            "properties": {
+              "addressPrefix": "[parameters('publicCIDR')]"
+            }
+          }
+        ] 
+      }
+    },
+    {
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/publicIPAddresses",
+      "name": "[concat(parameters('stack'), '-bastion-ip')]",
+      "location": "[parameters('region')]",
+      "dependsOn": [
+        "[parameters('vnetName')]"
+      ],
+      "properties": {
+        "publicIPAllocationMethod": "dynamic",
+      }
+    },
+    {
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[concat(parameters('stack'),'-bastion-sg')]",
+      "location": "[parameters('region')]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "DenyAllIn",
+            "properties": {
+              "description": "DenyAllIn",
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "1-65535",
+              "sourceAddressPrefix": "Internet",
+              "destinationAddressPrefix": "*",
+              "access": "Deny",
+              "priority": 998,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "DenyAllOut",
+            "properties": {
+              "description": "DenyAllOut",
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "*",
+              "sourceAddressPrefix": "*",
+              "destinationAddressPrefix": "*",
+              "access": "Deny",
+              "priority": 999,
+              "direction": "Outbound"
+            }
+          },
+          {
+            "name": "AllowSshIn",
+            "properties": {
+              "description": "Allow SSH Inbound from external",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "Internet",
+              "destinationAddressPrefix": "*",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "AllowSshOut",
+            "properties": {
+              "description": "[concat('Allow SSH Outbound only to ', parameters('privateCIDR') ) ]",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "Internet",
+              "destinationAddressPrefix": "[parameters('privateCIDR')]",
+              "access": "Allow",
+              "priority": 101,
+              "direction": "Outbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/networkInterfaces",
+      "name": "[variables('nicName')]",
+      "name": "[concat(parameters('stack'),'-bastion-nic')]",
+      "location": "[parameters('region')]",
+      "dependsOn": [
+        "[concat('Microsoft.Network/publicIPAddresses/', concat(parameters('stack'), '-bastion-ip'))]",
+        "[concat('Microsoft.Network/virtualNetworks/', parameters('vnetName'))]",
+        "[concat('Microsoft.Network/networkSecurityGroups/', concat(parameters('stack'), '-bastion-sg'))]"
+      ],
+      "properties": {
+        "networkSecurityGroup": {
+          "id": "[resourceId('Microsoft.Network/networkSecurityGroups', concat(parameters('stack'), '-bastion-sg'))]"
+        },
+        "ipConfigurations": [
+          {
+            "name": "ipconfig1",
+            "properties": {
+              "privateIPAllocationMethod": "Dynamic",
+              "publicIPAddress": {
+                "id": "[resourceId('Microsoft.Network/publicIPAddresses', concat(parameters('stack'), '-bastion-ip'))]"
+              },
+              "subnet": {
+                "id": "[concat('/subscriptions/',subscription().subscriptionId,'/resourceGroups/',parameters('stack'),'/providers/Microsoft.Network/virtualNetworks/',parameters('vnetName'),'/subnets/', parameters('privateName'))]"
+              }
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Compute/virtualMachines",
+      "name": "[concat(parameters('stack'), '-bastion')]",
+      "location": "[parameters('region')]",
+      "dependsOn": [
+        "[concat('Microsoft.Storage/storageAccounts/', parameters('storageAccountName'))]",
+        "[concat(parameters('stack'),'-bastion-nic')]"
+      ],
+      "properties": {
+        "hardwareProfile": {
+          "vmSize": "[parameters('bastionSize')]"
+        },
+        "osProfile": {
+          "computername": "[concat(parameters('stack'), '-bastion')]",
+          "adminUsername": "arm-user",
+          "linuxConfiguration": {
+            "disablePasswordAuthentication": "true",
+            "ssh": {
+              "publicKeys": [
+                {
+                  "path": "/home/arm-user/.ssh/authorized_keys",
+                  "keyData": "[parameters('sshKeyData')]"
+                }
+              ]
+            }
+          }
+        },
+        "storageProfile": {
+          "imageReference": {
+            "publisher": "Canonical",
+            "offer": "UbuntuServer",
+            "sku": "16.10-DAILY",
+            "version": "latest"
+          },
+          "osDisk": {
+            "name": "bastion-osdisk",
+            "vhd": {
+              "uri": "[concat('http://',parameters('storageAccountName'),'.blob.core.windows.net/disks/bastion-osdisk.vhd')]"
+            },
+            "caching": "ReadWrite",
+            "createOption": "FromImage"
+          }
+        },
+        "networkProfile": {
+          "networkInterfaces": [
+            {
+              "id": "[resourceId('Microsoft.Network/networkInterfaces', concat(parameters('stack'),'-bastion-nic'))]"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[concat(parameters('stack'),'-master-sg')]",
+      "location": "[parameters('region')]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "DenyAll",
+            "properties": {
+              "description": "DenyAll",
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "1-65535",
+              "sourceAddressPrefix": "Internet",
+              "destinationAddressPrefix": "*",
+              "access": "Deny",
+              "priority": 999,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "AllowSshIn",
+            "properties": {
+              "description": "[concat('Allow SSH Inbound only from ', parameters('privateCIDR') ) ]",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "Internet",
+              "destinationAddressPrefix": "[parameters('privateCIDR')]",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[concat(parameters('stack'),'-infra-sg')]",
+      "location": "[parameters('region')]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "DenyAll",
+            "properties": {
+              "description": "DenyAll",
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "1-65535",
+              "sourceAddressPrefix": "Internet",
+              "destinationAddressPrefix": "*",
+              "access": "Deny",
+              "priority": 999,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "AllowSshIn",
+            "properties": {
+              "description": "[concat('Allow SSH Inbound only from ', parameters('privateCIDR') ) ]",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "Internet",
+              "destinationAddressPrefix": "[parameters('privateCIDR')]",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "apiVersion": "[variables('apiVersion')]",
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "name": "[concat(parameters('stack'),'-app-sg')]",
+      "location": "[parameters('region')]",
+      "properties": {
+        "securityRules": [
+          {
+            "name": "DenyAll",
+            "properties": {
+              "description": "DenyAll",
+              "protocol": "*",
+              "sourcePortRange": "*",
+              "destinationPortRange": "1-65535",
+              "sourceAddressPrefix": "Internet",
+              "destinationAddressPrefix": "*",
+              "access": "Deny",
+              "priority": 999,
+              "direction": "Inbound"
+            }
+          },
+          {
+            "name": "AllowSshIn",
+            "properties": {
+              "description": "[concat('Allow SSH Inbound only from ', parameters('privateCIDR') ) ]",
+              "protocol": "Tcp",
+              "sourcePortRange": "*",
+              "destinationPortRange": "22",
+              "sourceAddressPrefix": "Internet",
+              "destinationAddressPrefix": "[parameters('privateCIDR')]",
+              "access": "Allow",
+              "priority": 100,
+              "direction": "Inbound"
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

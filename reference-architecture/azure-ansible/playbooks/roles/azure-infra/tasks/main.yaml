@@ -1,0 +1,147 @@
+---
+- name: Create Azure Resource Group
+  shell: "azure group create {{ group_name }} {{ region }}"
+  when: create_rg == "true"
+
+- name: Read template into memory
+  set_fact:
+    content: "{{ lookup('file', 'roles/azure-infra/files/azure.json', convert_data=False ) }}"
+
+- name:  Read ssh public key to memory
+  set_fact:
+    key_data: "{{ lookup('file', ssh_key, convert_data=False ) }}"
+
+- name: Create Azure Deploy
+  azure_rm_deployment:
+    state: present
+    resource_group_name: "{{ group_name }}"
+    template: "{{ content }}"
+    parameters:
+      region:
+        value: "{{ region }}"
+      stack:
+        value: "{{ group_name }}"
+      storageAccountName:
+        value: "{{ group_name|lower }}storage"
+      vnetName:
+        value: "{{ group_name }}-net"
+      vnetCIDR:
+        value: "{{ vnet_cidr }}"
+      privateName:
+        value: "{{ group_name }}-private-subnet"
+      privateCIDR:
+        value: "{{ private_cidr }}"
+      publicName:
+        value: "{{ group_name }}-public-subnet"
+      publicCIDR:
+        value: "{{ public_cidr }}"
+      sshKeyData:
+        value: "{{ key_data }}"
+  register: azure
+
+#- name: Create bastion security group
+#  azure_rm_securitygroup:
+#    resource_group: "{{ group_name }}"
+#    name: "{{ group_name }}-bastion-sg"
+#    purge_rules: yes
+#    rules:
+#      - name: DenyAll
+#        protocol: "*"
+#        destination_port_range: 1-65535
+#        access: Deny
+#        priority: 100
+#        direction: Inbound
+#      - name: 'AllowSSHIn'
+#        protocol: Tcp
+#        destination_port_range: 22
+#        access: Allow
+#        priority: 101
+#        direction: Inbound
+#      - name: 'AllowSSHOut'
+#        protocol: Tcp
+#        destination_address_prefix: "{{ private_cidr }}"
+#        destination_port_range: 22
+#        access: Allow
+#        priority: 102
+#        direction: Outbound
+#
+#- name: Create master security group
+#  azure_rm_securitygroup:
+#    resource_group: "{{ group_name }}"
+#    name: "{{ group_name }}-master-sg"
+#    purge_rules: yes
+#    rules:
+#      - name: DenyAll
+#        protocol: "*"
+#        destination_port_range: 1-65535
+#        access: Deny
+#        priority: 100
+#        direction: Inbound
+#      - name: 'AllowSSHFromPrivate'
+#        protocol: Tcp
+#        destination_port_range: 22
+#        source_address_prefix: "{{ private_cidr }}"
+#        access: Allow
+#        priority: 101
+#        direction: Inbound
+#      - name: 'AllowSSHOut'
+#        protocol: Tcp
+#        destination_address_prefix: "{{ private_cidr }}"
+#        destination_port_range: 22
+#        access: Allow
+#        priority: 102
+#        direction: Outbound
+#
+#- name: Create infra security group
+#  azure_rm_securitygroup:
+#    resource_group: "{{ group_name }}"
+#    name: "{{ group_name }}-infra-sg"
+#    purge_rules: yes
+#    rules:
+#      - name: DenyAll
+#        protocol: "*"
+#        destination_port_range: 1-65535
+#        access: Deny
+#        priority: 100
+#        direction: Inbound
+#      - name: 'AllowSSHFromPrivate'
+#        protocol: Tcp
+#        destination_port_range: 22
+#        source_address_prefix: "{{ private_cidr }}"
+#        access: Allow
+#        priority: 101
+#        direction: Inbound
+#      - name: 'AllowSSHOut'
+#        protocol: Tcp
+#        destination_address_prefix: "{{ private_cidr }}"
+#        destination_port_range: 22
+#        access: Allow
+#        priority: 102
+#        direction: Outbound
+#
+#- name: Create appnode security group
+#  azure_rm_securitygroup:
+#    resource_group: "{{ group_name }}"
+#    name: "{{ group_name }}-app-sg"
+#    purge_rules: yes
+#    rules:
+#      - name: DenyAll
+#        protocol: "*"
+#        destination_port_range: 1-65535
+#        access: Deny
+#        priority: 100
+#        direction: Inbound
+#      - name: 'AllowSSHFromPrivate'
+#        protocol: Tcp
+#        destination_port_range: 22
+#        source_address_prefix: "{{ private_cidr }}"
+#        access: Allow
+#        priority: 101
+#        direction: Inbound
+#      - name: 'AllowSSHOut'
+#        protocol: Tcp
+#        destination_address_prefix: "{{ private_cidr }}"
+#        destination_port_range: 22
+#        access: Allow
+#        priority: 102
+#        direction: Outbound
