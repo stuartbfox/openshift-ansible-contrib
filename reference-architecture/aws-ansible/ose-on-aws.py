@@ -311,9 +311,10 @@ def launch_refarch_env(stack_name=None,
       return os.WEXITSTATUS(status)
 
 def render_template(install_type="greenfield", master_count=3, infra_count=4, node_count=2, custom_template=None):
-  tmpl = Environment(loader=FileSystemLoader('./'), trim_blocks=True)
-  t_in = ("playbooks/roles/cloudformation-infra/files/%s.json.j2") % (install_type)
-  t_out = ("playbooks/roles/cloudformation-infra/files/%s.json") % (install_type)
+  tmpl = Environment(loader=FileSystemLoader('/'), trim_blocks=True)
+  wd = os.getcwd()
+  t_in = ("%s/playbooks/roles/cloudformation-infra/files/%s.json.j2") % (wd, install_type)
+  t_out = ("%s/playbooks/roles/cloudformation-infra/files/%s.json") % (wd, install_type)
 
   if custom_template:
     r1 = tmpl.get_template(t_in).render(
@@ -325,7 +326,7 @@ def render_template(install_type="greenfield", master_count=3, infra_count=4, no
           infra_count=(infra_count + 1),
           node_count=(node_count + 1))
     rendered = merge(json.loads(r1), json.loads(r2))
-    rendered = json.dumps(rendered) 
+    rendered = json.dumps(rendered)
   else:
     rendered = tmpl.get_template(t_in).render(
           master_count=(master_count + 1),
@@ -334,7 +335,6 @@ def render_template(install_type="greenfield", master_count=3, infra_count=4, no
 
   with open(t_out, "wb") as fh:
     fh.write(rendered)
-
 
 def merge(a, b):
    c = deepcopy(a)
